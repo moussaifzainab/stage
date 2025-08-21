@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Pleine largeur */
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; width: 100%; margin: 0; }
+body { background:#f5f7fb; overflow-x:hidden; }
+
+/* Si un Container MUI traîne */
+.MuiContainer-root { max-width: 100% !important; }
+
+/* Ombres légères pour cartes */
+.MuiPaper-root { transition: box-shadow .2s ease; }
+.MuiPaper-root:hover { box-shadow: 0 12px 24px -14px rgba(2,6,23,.20); }

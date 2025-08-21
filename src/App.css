@@ -1,0 +1,31 @@
+/* --- RESET minimal, pas de marge ni padding fantôme --- */
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+}
+
+body {
+  background: #f6f7fb;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Vire le style Vite par défaut */
+#root {
+  display: block;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+body { overflow-x: hidden; }
+.MuiContainer-root { max-width: 100% !important; } /* si jamais il y en a */
