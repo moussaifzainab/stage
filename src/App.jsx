@@ -1,4 +1,4 @@
-// src/App.jsx
+// src/App.jsx (Version test temporaire)
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -11,7 +11,6 @@ import Rapports from "./pages/Rapports";
 import Utilisateurs from "./pages/Utilisateurs";
 import Profil from "./pages/Profil";
 import Parametres from "./pages/Parametres";
-// import Api from "./pages/Api"; // Commenté car le fichier n'existe pas encore
 
 import PrivateRoute from "./components/PrivateRoute";
 import { NotificationsProvider } from "./context/NotificationsContext";
@@ -38,7 +37,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<Navigate to="/login" replace />} />
 
-          {/* Dashboard - Accessible à tous les utilisateurs authentifiés */}
+          {/* Dashboard */}
           <Route
             path="/dashboard"
             element={
@@ -48,7 +47,7 @@ export default function App() {
             }
           />
 
-          {/* Incidents - Accessible à tous les utilisateurs authentifiés */}
+          {/* Incidents */}
           <Route
             path="/incidents"
             element={
@@ -58,49 +57,10 @@ export default function App() {
             }
           />
 
-          {/* Ajouter incident - Accessible aux ADMIN et UTILISATEUR */}
-          <Route
-            path="/ajouter"
-            element={
-              <PrivateRoute allowedRoles={["ADMIN", "UTILISATEUR"]}>
-                <AjoutIncident />
-              </PrivateRoute>
-            }
-          />
+          {/* ✅ TEST: Paramètres SANS PrivateRoute */}
+          <Route path="/parametres" element={<Parametres />} />
 
-          {/* Rapports - Accessible uniquement aux ADMIN */}
-          <Route
-            path="/rapports"
-            element={
-              <PrivateRoute allowedRoles={["ADMIN"]}>
-                <Rapports />
-              </PrivateRoute>
-            }
-          />
-
-          {/* Gestion des utilisateurs - Accessible uniquement aux ADMIN */}
-          <Route
-            path="/utilisateurs"
-            element={
-              <PrivateRoute allowedRoles={["ADMIN"]}>
-                <Utilisateurs />
-              </PrivateRoute>
-            }
-          />
-
-          {/* API Documentation - Accessible uniquement aux ADMIN */}
-          {/* 
-          <Route
-            path="/api"
-            element={
-              <PrivateRoute allowedRoles={["ADMIN"]}>
-                <Api />
-              </PrivateRoute>
-            }
-          />
-          */}
-
-          {/* Profil - Accessible à tous les utilisateurs authentifiés */}
+          {/* Profil */}
           <Route
             path="/profil"
             element={
@@ -110,17 +70,35 @@ export default function App() {
             }
           />
 
-          {/* Paramètres - Accessible à tous les utilisateurs authentifiés */}
+          {/* Autres routes... */}
           <Route
-            path="/parametres"
+            path="/ajouter"
             element={
-              <PrivateRoute allowedRoles={["ADMIN", "TECHNICIEN", "UTILISATEUR"]}>
-                <Parametres />
+              <PrivateRoute allowedRoles={["ADMIN", "UTILISATEUR"]}>
+                <AjoutIncident />
+              </PrivateRoute>
+            }
+          />
+          
+          <Route
+            path="/rapports"
+            element={
+              <PrivateRoute allowedRoles={["ADMIN"]}>
+                <Rapports />
+              </PrivateRoute>
+            }
+          />
+          
+          <Route
+            path="/utilisateurs"
+            element={
+              <PrivateRoute allowedRoles={["ADMIN"]}>
+                <Utilisateurs />
               </PrivateRoute>
             }
           />
 
-          {/* Route par défaut - Redirection vers dashboard */}
+          {/* Route par défaut */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </NotificationsProvider>

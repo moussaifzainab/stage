@@ -49,29 +49,35 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-/* Redirige sur 401, SAUF pour les endpoints de notifications */
 api.interceptors.response.use(
   (r) => r,
   (err) => {
     const status = err?.response?.status;
-    const url = (err?.config?.url || "") + ""; // toujours string
+    const url = String(err?.config?.url || "");
+    const skip401 = !!err?.config?.skip401Redirect; // ⬅️ NOUVEAU
 
-    // endpoints de notifs qu'on NE doit PAS faire quitter la page
     const isNotifEndpoint =
       url.includes("/notifications/unread") ||
       url.includes("/notifications/list") ||
-      url.includes("/notifications/read") ||     // read & read-all
+      url.includes("/notifications/read") ||
       url.includes("/notifications/clear") ||
       url.includes("/notifications/stream");
 
-    if (status === 401 && !isNotifEndpoint) {
+    const isOnLoginPage = window.location.pathname === "/login";
+    const isNavigationRequest = !url;
+
+    // Rediriger vers /login UNIQUEMENT si on n'a pas demandé de skip
+    if (status === 401 && !skip401 && !isOnLoginPage && !isNotifEndpoint && !isNavigationRequest) {
       clearToken();
-      if (window.location.pathname !== "/login") {
-        window.location.href = "/login";
-      }
+      setTimeout(() => {
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login";
+        }
+      }, 100);
     }
     return Promise.reject(err);
   }
 );
+
 
 export default api;
