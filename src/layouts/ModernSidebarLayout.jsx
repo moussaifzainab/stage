@@ -17,6 +17,11 @@ const extraItems = [
   { label: "Utilisateurs",     icon: "👥", path: "/utilisateurs", roles: ["ADMIN"] },
 ];
 
+const profileItems = [
+  { label: "Mon Profil",       icon: "👤", path: "/profil", roles: ["ADMIN", "TECHNICIEN", "UTILISATEUR"] },
+  { label: "Paramètres",       icon: "⚙️", path: "/parametres", roles: ["ADMIN", "TECHNICIEN", "UTILISATEUR"] },
+];
+
 // ————————————————————————————————————————————————
 //  🧩 Élément de navigation
 // ————————————————————————————————————————————————
@@ -45,10 +50,22 @@ function NavItem({ item, activePath, onClick }) {
 // ————————————————————————————————————————————————
 function UserProfile({ displayName, email, roleLabel, onLogout, compact }) {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+  
   const initials = useMemo(() => {
     if (!displayName) return 'U';
     return displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
   }, [displayName]);
+
+  const handleProfileClick = () => {
+    setOpen(false);
+    navigate('/profil');
+  };
+
+  const handleSettingsClick = () => {
+    setOpen(false);
+    navigate('/parametres');
+  };
 
   if (compact) {
     return (
@@ -83,11 +100,17 @@ function UserProfile({ displayName, email, roleLabel, onLogout, compact }) {
             {email && <p className="text-sm text-gray-500 truncate">{email}</p>}
           </div>
           <div className="p-1">
-            <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg">
+            <button 
+              onClick={handleSettingsClick}
+              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
+            >
               ⚙️ Paramètres
             </button>
-            <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg">
-              👤 Profil
+            <button 
+              onClick={handleProfileClick}
+              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
+            >
+              👤 Mon Profil
             </button>
             <button
               onClick={onLogout}
@@ -123,8 +146,15 @@ export default function ModernSidebarLayout({ children }) {
   // Construction finale du menu selon rôles
   const menuItems = useMemo(() => {
     let items = [...baseItems];
-    if (hasAdmin || hasUtilisateur) items.push(extraItems[0]); // Ajouter incident
-    if (hasAdmin) items.push(extraItems[1], extraItems[2]);    // Rapports + Utilisateurs
+    
+    // Ajouter les fonctionnalités selon les rôles
+    if (hasAdmin || hasUtilisateur) {
+      items.push(extraItems[0]); // Ajouter incident
+    }
+    if (hasAdmin) {
+      items.push(extraItems[1], extraItems[2]); // Rapports + Utilisateurs
+    }
+    
     return items;
   }, [hasAdmin, hasUtilisateur]);
 
@@ -139,6 +169,13 @@ export default function ModernSidebarLayout({ children }) {
       localStorage.removeItem('roles');
     } catch (e) {}
     navigate('/login');
+  };
+
+  const getPageTitle = () => {
+    const currentItem = [...menuItems, ...profileItems].find(
+      (i) => activePath === i.path || activePath.startsWith(i.path + "/")
+    );
+    return currentItem?.label || 'Dashboard';
   };
 
   return (
@@ -178,10 +215,37 @@ export default function ModernSidebarLayout({ children }) {
               {menuItems.map((item) => (
                 <NavItem key={item.path} item={item} activePath={activePath} onClick={() => {}} />
               ))}
+              
+              {/* Section Compte */}
+              <div className="pt-4">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Compte</p>
+                {profileItems.map((item) => (
+                  <NavItem key={item.path} item={item} activePath={activePath} onClick={() => {}} />
+                ))}
+              </div>
             </>
           ) : (
             <div className="space-y-4">
+              {/* Navigation principale compacte */}
               {menuItems.map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  title={item.label}
+                  className={({ isActive }) =>
+                    `w-full p-3 rounded-xl transition-all duration-200 flex items-center justify-center ` +
+                    `${isActive ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white' : 'text-gray-600 hover:bg-gray-100'}`
+                  }
+                >
+                  <span className="text-xl" aria-hidden>{item.icon}</span>
+                </NavLink>
+              ))}
+              
+              {/* Séparateur */}
+              <div className="h-px bg-gray-200 mx-2"></div>
+              
+              {/* Navigation compte compacte */}
+              {profileItems.map((item) => (
                 <NavLink
                   key={item.path}
                   to={item.path}
@@ -217,7 +281,7 @@ export default function ModernSidebarLayout({ children }) {
           <div className="flex items-center justify-between">
             <div className="min-w-0">
               <h2 className="text-2xl font-bold text-gray-900 truncate">
-                {menuItems.find((i) => activePath === i.path || activePath.startsWith(i.path + "/"))?.label || 'Dashboard'}
+                {getPageTitle()}
               </h2>
               <p className="text-sm text-gray-500">
                 {new Date().toLocaleDateString('fr-FR', {

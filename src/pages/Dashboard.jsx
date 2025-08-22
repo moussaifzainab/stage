@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Pie, Bar } from "react-chartjs-2";
 import "chart.js/auto";
-import SidebarLayout from "../layouts/SidebarLayout";
+import ModernSidebarLayout from "../layouts/ModernSidebarLayout";
 import { listParRole, getKpis } from "../services/incidents";
 import { exportToExcel, exportToPDF } from "../services/exportUtils";
 import { toast } from "react-toastify";
@@ -130,14 +130,7 @@ export default function Dashboard() {
 
   // ====== UI ======
   return (
-    <SidebarLayout>
-      {/* En-tête bleue */}
-      <div className="bg-[#1e3aef] text-white rounded-xl shadow-sm px-5 py-3 mb-4 flex items-center justify-center">
-        <div className="text-xl md:text-2xl font-bold">
-          🚀 Tableau de Bord - Gestion des Incidents
-        </div>
-      </div>
-
+    <ModernSidebarLayout>
       {/* Filtres + Export + Réinitialiser (pas de bouton Rafraîchir) */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-3 mb-4">
         <div className="flex flex-wrap items-end gap-3">
@@ -278,6 +271,6 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-    </SidebarLayout>
+    </ModernSidebarLayout>
   );
 }

@@ -1,3 +1,4 @@
+// src/App.jsx
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -6,25 +7,37 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Incidents from "./pages/Incidents";
 import AjoutIncident from "./pages/AjoutIncident";
-import PrivateRoute from "./components/PrivateRoute";
+import Rapports from "./pages/Rapports";
+import Utilisateurs from "./pages/Utilisateurs";
+import Profil from "./pages/Profil";
+import Parametres from "./pages/Parametres";
 
-// ✅ Provider des notifications (SSE)
+import PrivateRoute from "./components/PrivateRoute";
 import { NotificationsProvider } from "./context/NotificationsContext";
 
 export default function App() {
   return (
     <BrowserRouter>
-      {/* Tout l'app écoute le flux SSE via ce provider */}
       <NotificationsProvider>
-        <ToastContainer position="top-right" autoClose={3000} />
+        <ToastContainer 
+          position="top-right" 
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+        />
 
         <Routes>
-          {/* Login */}
+          {/* Pages publiques */}
           <Route path="/login" element={<Login />} />
-          {/* "/" -> /login */}
           <Route path="/" element={<Navigate to="/login" replace />} />
 
-          {/* Dashboard : tous rôles authentifiés */}
+          {/* Dashboard - Accessible à tous les utilisateurs authentifiés */}
           <Route
             path="/dashboard"
             element={
@@ -34,7 +47,7 @@ export default function App() {
             }
           />
 
-          {/* Incidents : tous rôles authentifiés */}
+          {/* Incidents - Accessible à tous les utilisateurs authentifiés */}
           <Route
             path="/incidents"
             element={
@@ -44,7 +57,7 @@ export default function App() {
             }
           />
 
-          {/* Ajout : ADMIN + UTILISATEUR */}
+          {/* Ajouter incident - Accessible aux ADMIN et UTILISATEUR */}
           <Route
             path="/ajouter"
             element={
@@ -54,7 +67,47 @@ export default function App() {
             }
           />
 
-          {/* 404 -> dashboard */}
+          {/* Rapports - Accessible uniquement aux ADMIN */}
+          <Route
+            path="/rapports"
+            element={
+              <PrivateRoute allowedRoles={["ADMIN"]}>
+                <Rapports />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Gestion des utilisateurs - Accessible uniquement aux ADMIN */}
+          <Route
+            path="/utilisateurs"
+            element={
+              <PrivateRoute allowedRoles={["ADMIN"]}>
+                <Utilisateurs />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Profil - Accessible à tous les utilisateurs authentifiés */}
+          <Route
+            path="/profil"
+            element={
+              <PrivateRoute allowedRoles={["ADMIN", "TECHNICIEN", "UTILISATEUR"]}>
+                <Profil />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Paramètres - Accessible à tous les utilisateurs authentifiés */}
+          <Route
+            path="/parametres"
+            element={
+              <PrivateRoute allowedRoles={["ADMIN", "TECHNICIEN", "UTILISATEUR"]}>
+                <Parametres />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Route par défaut - Redirection vers dashboard */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </NotificationsProvider>
