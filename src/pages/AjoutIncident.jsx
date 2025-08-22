@@ -1,6 +1,6 @@
 // src/pages/AjoutIncident.jsx
 import React from "react";
-import SidebarLayout from "../layouts/SidebarLayout";
+import ModernSidebarLayout from "../layouts/ModernSidebarLayout";
 import IncidentForm from "./IncidentForm";
 import { ToastContainer, toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
@@ -15,11 +15,11 @@ export default function AjoutIncident() {
   };
 
   return (
-    <SidebarLayout title="Ajouter un incident">
+    <ModernSidebarLayout title="Ajouter un incident">
       <ToastContainer position="top-right" autoClose={3000} />
       <div className="p-6">
         <IncidentForm onSuccess={handleSuccess} />
       </div>
-    </SidebarLayout>
+    </ModernSidebarLayout>
   );
 }

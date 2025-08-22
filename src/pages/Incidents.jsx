@@ -1,6 +1,6 @@
 // src/pages/Incidents.jsx
 import React from "react";
-import SidebarLayout from "../layouts/SidebarLayout";
+import ModernSidebarLayout from "../layouts/ModernSidebarLayout";
 import IncidentList from "../components/IncidentList";
 import { isAdmin, isTechnicien, isUtilisateur } from "../services/authInfo";
 
@@ -47,8 +47,8 @@ export default function Incidents() {
   };
 
   return (
-    <SidebarLayout title="Incidents">
+    <ModernSidebarLayout title="Incidents">
       <IncidentList perms={perms} />
-    </SidebarLayout>
+    </ModernSidebarLayout>
   );
 }
