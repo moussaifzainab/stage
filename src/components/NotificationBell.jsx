@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { fetchUnread, fetchList, markRead, markAllRead, clearAll, openSSE } from "../services/notifications";
+import { triggerNotificationSound } from '../utils/notificationUtils';
+
 
 export default function NotificationBell() {
   const [count, setCount] = useState(0);
@@ -63,6 +65,7 @@ export default function NotificationBell() {
     }
     return () => esRef.current?.close();
   // eslint-disable-next-line react-hooks/exhaustive-deps
+   triggerNotificationSound();
   }, []);
 
   return (

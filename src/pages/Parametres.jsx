@@ -2,35 +2,78 @@
 import React, { useEffect, useState } from "react";
 import ModernSidebarLayout from "../layouts/ModernSidebarLayout";
 import { toast } from "react-toastify";
+import api from "../services/api";
 
 const KEY = "app.settings";
 
 export default function Parametres() {
   const [settings, setSettings] = useState({ 
     notifSound: true, 
-    darkMode: false, 
     autoRefresh: true,
+    refreshInterval: 30, // secondes
     emailNotifications: true,
-    language: 'fr',
-    timezone: 'Europe/Paris'
+    language: 'fr'
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [refreshTimer, setRefreshTimer] = useState(null);
 
   useEffect(() => {
+    loadSettings();
+  }, []);
+
+  // Chargement des paramètres depuis localStorage ET backend
+  const loadSettings = async () => {
     try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) setSettings(JSON.parse(raw));
+      // 1. Charger depuis localStorage
+      const localSettings = localStorage.getItem(KEY);
+      if (localSettings) {
+        const parsed = JSON.parse(localSettings);
+        setSettings(prev => ({ ...prev, ...parsed }));
+      }
+
+      // 2. Charger les préférences de notifications depuis le backend
+      try {
+        const response = await api.get("/auth/notification-preferences");
+        if (response.data) {
+          setSettings(prev => ({
+            ...prev,
+            emailNotifications: response.data.emailNotifications ?? prev.emailNotifications
+          }));
+        }
+      } catch (error) {
+        console.log('Pas de préférences notifications sauvegardées côté serveur');
+      }
     } catch (error) {
       console.error('Erreur lors du chargement des paramètres:', error);
     }
-  }, []);
+  };
 
+  // Sauvegarde des paramètres
   const save = async (nextSettings) => {
     setIsLoading(true);
     try {
+      // 1. Sauvegarder en local
       setSettings(nextSettings);
       localStorage.setItem(KEY, JSON.stringify(nextSettings));
+
+      // 2. Sauvegarder les préférences de notifications côté serveur
+      try {
+        await api.put("/auth/notification-preferences", {
+          emailNotifications: nextSettings.emailNotifications,
+          pushNotifications: true, // Toujours activé pour les notifications en temps réel
+          incidentCreation: true,
+          statusChanges: true,
+          closures: true,
+          assignments: true
+        });
+      } catch (error) {
+        console.error('Erreur sauvegarde préférences serveur:', error);
+      }
+
+      // 3. Appliquer immédiatement les paramètres
+      applySettings(nextSettings);
+      
       toast.success("Paramètres sauvegardés avec succès !");
     } catch (error) {
       toast.error("Erreur lors de la sauvegarde");
@@ -40,17 +83,95 @@ export default function Parametres() {
     }
   };
 
+  // Appliquer les paramètres immédiatement
+  const applySettings = (newSettings) => {
+    // Gestion de l'auto-refresh
+    if (refreshTimer) {
+      clearInterval(refreshTimer);
+      setRefreshTimer(null);
+    }
+
+    if (newSettings.autoRefresh) {
+      const interval = setInterval(() => {
+        // Actualiser les données si on est sur une page qui le supporte
+        const event = new CustomEvent('autoRefresh', { 
+          detail: { interval: newSettings.refreshInterval } 
+        });
+        window.dispatchEvent(event);
+      }, newSettings.refreshInterval * 1000);
+      
+      setRefreshTimer(interval);
+    }
+
+    // Son de notification
+    if (newSettings.notifSound) {
+      // Écouter les nouvelles notifications pour jouer un son
+      window.addEventListener('newNotification', playNotificationSound);
+    } else {
+      window.removeEventListener('newNotification', playNotificationSound);
+    }
+  };
+
+  // Jouer le son de notification
+  const playNotificationSound = () => {
+    // Créer un son simple avec Web Audio API
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800;
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.5);
+    } catch (error) {
+      console.log('Son de notification non supporté');
+    }
+  };
+
+  // Test du son de notification
+  const testNotificationSound = () => {
+    if (settings.notifSound) {
+      playNotificationSound();
+      toast.info("🔊 Son de notification testé !");
+    } else {
+      toast.info("Son de notification désactivé");
+    }
+  };
+
+  // Réinitialiser aux valeurs par défaut
   const resetToDefaults = () => {
     const defaults = { 
       notifSound: true, 
-      darkMode: false, 
       autoRefresh: true,
+      refreshInterval: 30,
       emailNotifications: true,
-      language: 'fr',
-      timezone: 'Europe/Paris'
+      language: 'fr'
     };
     save(defaults);
   };
+
+  // Nettoyage à la fermeture du composant
+  useEffect(() => {
+    return () => {
+      if (refreshTimer) {
+        clearInterval(refreshTimer);
+      }
+      window.removeEventListener('newNotification', playNotificationSound);
+    };
+  }, [refreshTimer]);
+
+  // Appliquer les paramètres au chargement
+  useEffect(() => {
+    applySettings(settings);
+  }, [settings.autoRefresh, settings.refreshInterval, settings.notifSound]);
 
   return (
     <ModernSidebarLayout>
@@ -62,7 +183,7 @@ export default function Parametres() {
           </div>
           <div>
             <h1 className="text-3xl font-bold">Paramètres</h1>
-            <p className="text-purple-100 mt-1">Personnalisez votre expérience utilisateur</p>
+            <p className="text-purple-100 mt-1">Configurez votre expérience utilisateur</p>
           </div>
         </div>
       </div>
@@ -79,13 +200,22 @@ export default function Parametres() {
             </div>
           </div>
           <div className="p-6 space-y-4">
-            <Toggle 
-              label="Son de notification" 
-              description="Émettre un son lors des nouvelles notifications"
-              checked={settings.notifSound} 
-              onChange={(v) => save({ ...settings, notifSound: v })}
-              icon="🔊"
-            />
+            <div className="flex items-center justify-between">
+              <Toggle 
+                label="Son de notification" 
+                description="Émettre un son lors des nouvelles notifications"
+                checked={settings.notifSound} 
+                onChange={(v) => save({ ...settings, notifSound: v })}
+                icon="🔊"
+              />
+              <button
+                onClick={testNotificationSound}
+                className="ml-3 px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+              >
+                Tester
+              </button>
+            </div>
+            
             <Toggle 
               label="Notifications par email" 
               description="Recevoir les alertes importantes par email"
@@ -96,66 +226,75 @@ export default function Parametres() {
           </div>
         </div>
 
-        {/* Section Interface */}
+        {/* Section Interface et Performance */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="bg-gradient-to-r from-emerald-50 to-teal-50 px-6 py-4 border-b border-gray-100">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-                <span className="text-white text-sm">🎨</span>
+                <span className="text-white text-sm">🔄</span>
               </div>
-              <h3 className="text-lg font-semibold text-gray-800">Interface</h3>
+              <h3 className="text-lg font-semibold text-gray-800">Actualisation automatique</h3>
             </div>
           </div>
           <div className="p-6 space-y-4">
             <Toggle 
-              label="Mode sombre" 
-              description="Activer le thème sombre (bientôt disponible)"
-              checked={settings.darkMode} 
-              onChange={(v) => save({ ...settings, darkMode: v })}
-              icon="🌙"
-              disabled={true}
-            />
-            <Toggle 
-              label="Auto-refresh des tableaux" 
-              description="Actualiser automatiquement les données"
+              label="Auto-refresh des données" 
+              description="Actualiser automatiquement les tableaux d'incidents"
               checked={settings.autoRefresh} 
               onChange={(v) => save({ ...settings, autoRefresh: v })}
               icon="🔄"
             />
+            
+            {settings.autoRefresh && (
+              <div className="ml-8 pl-4 border-l-2 border-emerald-200">
+                <SliderField
+                  label="Intervalle de rafraîchissement"
+                  value={settings.refreshInterval}
+                  onChange={(v) => save({ ...settings, refreshInterval: v })}
+                  min={10}
+                  max={300}
+                  step={10}
+                  unit="secondes"
+                  description={`Actualisation toutes les ${settings.refreshInterval} secondes`}
+                />
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Section Langue et Région */}
+        {/* Section Langue */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="bg-gradient-to-r from-orange-50 to-red-50 px-6 py-4 border-b border-gray-100">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
                 <span className="text-white text-sm">🌍</span>
               </div>
-              <h3 className="text-lg font-semibold text-gray-800">Langue et Région</h3>
+              <h3 className="text-lg font-semibold text-gray-800">Préférences linguistiques</h3>
             </div>
           </div>
           <div className="p-6 space-y-4">
             <SelectField
-              label="Langue"
+              label="Langue de l'interface"
               value={settings.language}
               onChange={(v) => save({ ...settings, language: v })}
               options={[
                 { value: 'fr', label: '🇫🇷 Français' },
-                { value: 'en', label: '🇺🇸 English' },
-                { value: 'es', label: '🇪🇸 Español' }
+                { value: 'en', label: '🇺🇸 English (bientôt)' },
+                { value: 'ar', label: '🇲🇦 العربية (bientôt)' }
               ]}
             />
-            <SelectField
-              label="Fuseau horaire"
-              value={settings.timezone}
-              onChange={(v) => save({ ...settings, timezone: v })}
-              options={[
-                { value: 'Europe/Paris', label: 'Europe/Paris (UTC+1)' },
-                { value: 'America/New_York', label: 'America/New_York (UTC-5)' },
-                { value: 'Asia/Tokyo', label: 'Asia/Tokyo (UTC+9)' }
-              ]}
-            />
+            
+            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <span className="text-orange-500 text-lg mt-0.5">ℹ️</span>
+                <div>
+                  <p className="text-sm font-medium text-orange-800">Note</p>
+                  <p className="text-xs text-orange-600 mt-1">
+                    Seul le français est actuellement disponible. D'autres langues seront ajoutées prochainement.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -183,15 +322,30 @@ export default function Parametres() {
             
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
               <div className="flex items-start gap-3">
-                <span className="text-blue-500 text-lg mt-0.5">ℹ️</span>
+                <span className="text-blue-500 text-lg mt-0.5">💾</span>
                 <div>
-                  <p className="text-sm font-medium text-blue-800">Information</p>
+                  <p className="text-sm font-medium text-blue-800">Sauvegarde automatique</p>
                   <p className="text-xs text-blue-600 mt-1">
-                    Les paramètres sont sauvegardés localement dans votre navigateur.
+                    Vos paramètres sont sauvegardés automatiquement à chaque modification.
                   </p>
                 </div>
               </div>
             </div>
+
+            {/* Statut de l'auto-refresh */}
+            {settings.autoRefresh && (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <span className="text-green-500 text-lg mt-0.5">✅</span>
+                  <div>
+                    <p className="text-sm font-medium text-green-800">Auto-refresh actif</p>
+                    <p className="text-xs text-green-600 mt-1">
+                      Les données se rafraîchissent automatiquement toutes les {settings.refreshInterval} secondes.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -251,6 +405,39 @@ function SelectField({ label, value, onChange, options }) {
           </option>
         ))}
       </select>
+    </div>
+  );
+}
+
+function SliderField({ label, value, onChange, min, max, step, unit, description }) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <label className="text-sm font-medium text-gray-700">{label}</label>
+        <span className="text-sm font-semibold text-blue-600">{value} {unit}</span>
+      </div>
+      
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(parseInt(e.target.value))}
+        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+        style={{
+          background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((value - min) / (max - min)) * 100}%, #e5e7eb ${((value - min) / (max - min)) * 100}%, #e5e7eb 100%)`
+        }}
+      />
+      
+      <div className="flex justify-between text-xs text-gray-500">
+        <span>{min} {unit}</span>
+        <span>{max} {unit}</span>
+      </div>
+      
+      {description && (
+        <p className="text-xs text-gray-500 mt-1">{description}</p>
+      )}
     </div>
   );
 }

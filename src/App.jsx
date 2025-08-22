@@ -11,6 +11,7 @@ import Rapports from "./pages/Rapports";
 import Utilisateurs from "./pages/Utilisateurs";
 import Profil from "./pages/Profil";
 import Parametres from "./pages/Parametres";
+// import Api from "./pages/Api"; // Commenté car le fichier n'existe pas encore
 
 import PrivateRoute from "./components/PrivateRoute";
 import { NotificationsProvider } from "./context/NotificationsContext";
@@ -86,6 +87,18 @@ export default function App() {
               </PrivateRoute>
             }
           />
+
+          {/* API Documentation - Accessible uniquement aux ADMIN */}
+          {/* 
+          <Route
+            path="/api"
+            element={
+              <PrivateRoute allowedRoles={["ADMIN"]}>
+                <Api />
+              </PrivateRoute>
+            }
+          />
+          */}
 
           {/* Profil - Accessible à tous les utilisateurs authentifiés */}
           <Route

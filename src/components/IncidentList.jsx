@@ -1,6 +1,8 @@
 // src/components/IncidentList.jsx
 import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import { useAutoRefresh } from '../hooks/useAutoRefresh';
+
 import {
   HiLightBulb, HiX, HiClipboardCopy, HiSearch, HiRefresh, HiDownload,
   HiPrinter, HiAdjustments, HiClock, HiSparkles, HiPencil, HiTrash
@@ -134,7 +136,7 @@ const IncidentList = () => {
     technicienNom: "", dateDebut: "", dateFin: "",
   });
 
-  // Droits d’affichage
+  // Droits d'affichage
   const canSeeEditBtn   = (inc) => inc?.statut !== "CLOTURE" && (isAdmin || isUser);
   const canSeeDeleteBtn = () => isAdmin;
 
@@ -157,6 +159,9 @@ const IncidentList = () => {
       setLoading(false);
     }
   };
+
+  // Hook d'auto-refresh - DOIT être appelé après la définition de fetchIncidents
+  useAutoRefresh(fetchIncidents);
 
   const searchIncidents = async () => {
     try {
@@ -638,7 +643,7 @@ const IncidentList = () => {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl">
             <div className="px-6 py-5 border-b flex items-center justify-between">
-              <h3 className="text-2xl font-semibold leading-tight">Éditer l’incident #{editIncidentId}</h3>
+              <h3 className="text-2xl font-semibold leading-tight">Éditer l'incident #{editIncidentId}</h3>
               <button onClick={closeEdit} className="text-gray-500 hover:text-gray-700" aria-label="Fermer">
                 <HiX size={22}/>
               </button>
